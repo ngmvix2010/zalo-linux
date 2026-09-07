@@ -1,4 +1,4 @@
-# Maintainer: Ngô Minh Vĩ <ngo.minhvi.04082010@gmail.com>
+# Maintainer: Ngô Minh Vĩ <ngmvix2010@gmail.com>
 pkgname=zalo-linux-git
 _pkgname=zalo-linux
 pkgver=1.0.0.r0.g1234567
@@ -8,12 +8,11 @@ arch=('x86_64')
 url="https://github.com/ngmvix2010/zalo-linux"
 license=('MIT' 'custom:proprietary')
 
-# Tên các dependency đã được chuẩn hóa theo đúng tên repo Arch (core/extra)
 makedepends=(
   'git' 'nodejs' 'npm' 'p7zip' 'fakeroot'
   'base-devel' 'cmake' 'meson' 'ninja' 'pkgconf'
   'libtool' 'autoconf' 'automake' 'gettext' 'nasm'
-  'patchelf' 'clang' 'wget' 'unzip' 'python'
+  'patchelf' 'clang' 'wget' 'unzip' 'python' 'python-pillow'
   'openssl' 'sqlcipher' 'xz'
 )
 
@@ -39,7 +38,6 @@ pkgver() {
 build() {
   cd "${srcdir}/${_pkgname}"
 
-  # Đặt cache npm trong srcdir để tránh lỗi quyền
   export npm_config_cache="${srcdir}/npm-cache"
 
   npm ci || npm install
@@ -57,7 +55,6 @@ package() {
     exit 1
   fi
 
-  # Dùng bsdtar xả nén dữ liệu từ file deb ra pkgdir
   bsdtar -xf "$deb_file" -C "${pkgdir}" "data.tar.*"
   bsdtar -xf "${pkgdir}/data.tar."* -C "${pkgdir}"
   rm -f "${pkgdir}/data.tar."*
