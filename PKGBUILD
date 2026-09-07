@@ -1,4 +1,4 @@
-# Maintainer: Ngô Minh Vĩ <ngmvix2010@gmail.com>
+# Maintainer: Ngô Minh Vĩ <ngo.minhvi.04082010@gmail.com>
 pkgname=zalo-linux-git
 _pkgname=zalo-linux
 pkgver=1.0.0.r0.g1234567
