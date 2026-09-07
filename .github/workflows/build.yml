@@ -21,10 +21,14 @@ jobs:
       image: archlinux:latest
 
     steps:
-      - name: Update system & Install base dependencies
+      - name: Initialize GPG Keyring & Update System
         run: |
+          pacman-key --init
+          pacman-key --populate archlinux
           pacman -Syu --noconfirm
-          pacman -S --noconfirm base-devel git nodejs npm p7zip 7-zip \
+          
+          # 7zip (không dấu gạch ngang)
+          pacman -S --noconfirm base-devel git nodejs npm p7zip 7zip \
             cmake meson ninja pkgconf libtool autoconf automake gettext nasm \
             patchelf clang wget unzip python python-pillow rust openssl sqlcipher xz
 
@@ -32,7 +36,6 @@ jobs:
         run: |
           useradd -m builder
           echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-          chown -R builder:builder .
 
       - uses: actions/checkout@v4
         with:
@@ -47,13 +50,9 @@ jobs:
         run: |
           su builder -c "
             cd zalo-linux
-            # -s: Tự động kéo dep thiếu bằng pacman nếu có
-            # -f: Force overwrite package cũ nếu trùng
-            # --noconfirm: Không hỏi yes/no
             makepkg -sf --noconfirm
           "
           
-          # Tìm file .pkg.tar.zst vừa build xong
           PKG_FILE=$(ls zalo-linux/*.pkg.tar.zst | head -n 1)
           PKG_NAME=$(basename "$PKG_FILE")
           
