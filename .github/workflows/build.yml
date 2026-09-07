@@ -21,13 +21,11 @@ jobs:
       image: archlinux:latest
 
     steps:
-      - name: Initialize GPG Keyring & Update System
+      - name: Initialize GPG Keyring & Install System Deps
         run: |
           pacman-key --init
           pacman-key --populate archlinux
           pacman -Syu --noconfirm
-          
-          # 7zip (không dấu gạch ngang)
           pacman -S --noconfirm base-devel git nodejs npm p7zip 7zip \
             cmake meson ninja pkgconf libtool autoconf automake gettext nasm \
             patchelf clang wget unzip python python-pillow rust openssl sqlcipher xz
@@ -41,9 +39,11 @@ jobs:
         with:
           path: 'zalo-linux'
 
-      - name: Fix workspace permissions for builder
+      - name: Fix permissions for builder user
+        # Cấp quyền cho user builder đối với cả thư mục làm việc VÀ thư mục temp của GitHub Actions
         run: |
           chown -R builder:builder zalo-linux
+          chown -R builder:builder /__w/_temp/
 
       - name: Run makepkg
         id: build
