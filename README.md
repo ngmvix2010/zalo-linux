@@ -1,7 +1,7 @@
 # Zalo for Linux
 
 A clean re-port of the **Zalo** desktop app (Vietnamese messenger by VNG) to
-**Linux x64**, packaged as a `.deb`. The bundle is extracted from the official
+**Linux x64**, packaged as a `.deb` or Arch Linux package (`.pkg.tar.zst`). The bundle is extracted from the official
 **macOS DMG** (`ZaloSetup-universal`), patched minimally, and its native modules
 are rebuilt from source for Linux. Runs on **Electron 39** (Chromium 142) with
 native Wayland.
@@ -24,67 +24,15 @@ native Wayland.
 - **Native modules rebuilt from source** — SQLCipher (`sqlite3`), E2EE backup
   decrypt (`db-cross-v4`), `zfile`, `zjxl`, `zimage`, `v8-profiles`.
 
-## Requirements
+---
 
-Node.js 18+ and npm, plus system packages (Debian/Ubuntu):
+## Installation & Usage
 
-```bash
-# runtime + packaging
-sudo apt install -y build-essential libssl-dev liblzma-dev libsqlcipher-dev \
-  p7zip-full dpkg fakeroot
+### 1. Arch Linux / Manjaro (Quickest)
 
-# building the native modules from source (zjxl / zimage / v8-profiles / …)
-sudo apt install -y cmake meson ninja-build pkg-config libtool autoconf \
-  automake gettext autopoint nasm patchelf clang git wget unzip python3
-```
-
-The native build scripts under `nativelibs/*/scripts/` also auto-install a few
-of their own dependencies via `apt` on first run.
-
-## Usage
+Chỉ cần clone repo và chạy `makepkg` để tự động tải phụ thuộc, biên dịch và cài đặt:
 
 ```bash
-npm install          # install the Electron shell + build deps
-npm run setup        # download DMG, extract bundle to app/, patch, build native
-npm start            # run the app (dev)
-npm run build        # produce dist/Zalo-<version>.deb
-npm run main         # setup + build in one shot
-```
-
-Install the built package:
-
-```bash
-sudo dpkg -i dist/Zalo-*.deb
-sudo apt -f install          # pull in any missing runtime deps
-```
-
-Set `ZALO_DMG=/path/to/ZaloSetup-universal-<ver>.dmg` to skip the download and
-use a local DMG.
-
-## Layout
-
-- `main.js` — Electron shell entry (loads the extracted bundle).
-- `scripts/` — orchestrator, download/extract, build, and the `patches/` applied
-  to the extracted bundle (each idempotent, fail-loud on version drift).
-- `nativelibs/` — native module sources, built from scratch every setup.
-- `app/` — extracted Zalo bundle (git-ignored, never committed).
-- `docs/` — porting guide, RE roadmap, and per-feature design notes.
-
-## Donate / Ủng hộ
-
-Dự án làm miễn phí cho cộng đồng Linux dùng Zalo. Nếu thấy hữu ích, bạn có thể
-ủng hộ tác giả một ly cà phê ☕ — cảm ơn rất nhiều! _(Free project — if it helps
-you, a coffee is appreciated. Thank you!)_
-
-- **PayPal:** [paypal.me/totaa237](https://paypal.me/totaa237)
-- **VietQR (VIB) — chuyển khoản ngân hàng:**
-  - Chủ tài khoản: **THO THANH TAM**
-  - Số tài khoản: **003704060209590** (VIB)
-
-<p>
-  <img src="docs/donate-qr.jpg" alt="VietQR donate" width="280">
-</p>
-
-## License
-
-MIT (harness only). The Zalo bundle itself is proprietary to VNG.
+git clone [https://github.com/ngmvix2010/zalo-linux.git](https://github.com/ngmvix2010/zalo-linux.git)
+cd zalo-linux
+makepkg -si
