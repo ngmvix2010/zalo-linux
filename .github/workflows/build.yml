@@ -1,4 +1,4 @@
-name: Build Zalo for Linux
+name: Build Zalo for Arch Linux
 
 on:
   push:
@@ -16,66 +16,63 @@ permissions:
 
 jobs:
   build:
-    # Build on the OLDEST supported base so the native libs' glibc / libstdc++ /
-    # OpenSSL requirements stay low → the .deb runs on the widest range of distros.
-    # 22.04 = glibc 2.35 + OpenSSL 3 (libcrypto.so.3). Don't drop to 20.04: it ships
-    # OpenSSL 1.1 (no libcrypto.so.3) and its runner is being retired.
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+
     steps:
+      - name: Update system & Install base dependencies
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm base-devel git nodejs npm p7zip 7-zip \
+            cmake meson ninja pkgconf libtool autoconf automake gettext nasm \
+            patchelf clang wget unzip python python-pillow rust openssl sqlcipher xz
+
+      - name: Create non-root user for makepkg
+        run: |
+          useradd -m builder
+          echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+          chown -R builder:builder .
+
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          path: 'zalo-linux'
 
-      - name: Install system deps
+      - name: Fix workspace permissions for builder
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            p7zip-full build-essential libssl-dev liblzma-dev libsqlcipher-dev \
-            dpkg fakeroot cmake nasm ninja-build patchelf git curl \
-            python3 python3-pil \
-            meson pkg-config autoconf automake libtool gettext autopoint libglib2.0-dev-bin
+          chown -R builder:builder zalo-linux
 
-      - name: Install modern 7-Zip (7zz)
-        # Ubuntu 22.04's legacy p7zip 16.02 (`7z`) AND whatever old `7zz` the runner
-        # ships both fail to read Zalo's DMG ("Headers Error"). Drop in the official
-        # 7-Zip 23.01 static build (verified to extract this DMG) at /usr/local/bin so
-        # it wins on PATH; extract-installer.js prefers `7zz`.
-        run: |
-          curl -fL https://www.7-zip.org/a/7z2301-linux-x64.tar.xz -o /tmp/7z.tar.xz
-          tar -C /tmp -xJf /tmp/7z.tar.xz 7zz
-          sudo install -m 755 /tmp/7zz /usr/local/bin/7zz
-          command -v 7zz && 7zz i | head -2
-
-      - name: Install npm deps
-        run: npm install --no-audit --no-fund
-
-      - name: Install Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: stable
-          target: x86_64-unknown-linux-gnu
-
-      - name: Setup + Build
+      - name: Run makepkg
         id: build
-        env:
-          ZALO_VERSION: ${{ github.event.inputs.zalo_version }}
-        run: npm run main
+        run: |
+          su builder -c "
+            cd zalo-linux
+            # -s: Tự động kéo dep thiếu bằng pacman nếu có
+            # -f: Force overwrite package cũ nếu trùng
+            # --noconfirm: Không hỏi yes/no
+            makepkg -sf --noconfirm
+          "
+          
+          # Tìm file .pkg.tar.zst vừa build xong
+          PKG_FILE=$(ls zalo-linux/*.pkg.tar.zst | head -n 1)
+          PKG_NAME=$(basename "$PKG_FILE")
+          
+          echo "pkg_file=$PKG_FILE" >> $GITHUB_OUTPUT
+          echo "pkg_name=$PKG_NAME" >> $GITHUB_OUTPUT
 
-      - name: Upload artifact
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.build.outputs.deb_name }}
-          path: ${{ steps.build.outputs.deb_file }}
+          name: ${{ steps.build.outputs.pkg_name }}
+          path: ${{ steps.build.outputs.pkg_file }}
           retention-days: 30
 
-      - name: Release
+      - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          files: ${{ steps.build.outputs.deb_file }}
+          files: ${{ steps.build.outputs.pkg_file }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
