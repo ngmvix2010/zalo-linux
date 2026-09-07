@@ -1,4 +1,4 @@
-# Maintainer: Your Name <your.email@example.com>
+# Maintainer: Ngô Minh Vĩ <ngmvix2010@gmail.com>
 pkgname=zalo-linux-git
 _pkgname=zalo-linux
 pkgver=1.0.0.r0.g1234567
@@ -8,20 +8,19 @@ arch=('x86_64')
 url="https://github.com/ngmvix2010/zalo-linux"
 license=('MIT' 'custom:proprietary')
 
-# Các thư viện & công cụ cần thiết để build native modules và đóng gói
+# Tên gói trên Arch Linux chuẩn hóa từ Debian/Ubuntu
 makedepends=(
-  'git' 'nodejs' 'npm' 'p7zip' 'dpkg' 'fakeroot'
-  'build-essential' 'cmake' 'meson' 'ninja' 'pkgconf'
+  'git' 'nodejs' 'npm' 'p7zip' 'fakeroot'
+  'base-devel' 'cmake' 'meson' 'ninja' 'pkgconf'
   'libtool' 'autoconf' 'automake' 'gettext' 'nasm'
   'patchelf' 'clang' 'wget' 'unzip' 'python'
-  'openssl' 'sqlcipher' 'xz'
+  'openssl' 'sqlcipher' 'liblzma'
 )
 
-# Các thư viện cần thiết lúc ứng dụng chạy
 depends=(
   'openssl'
   'sqlcipher'
-  'xz'
+  'liblzma'
   'gtk3'
   'nss'
   'alsa-lib'
@@ -40,23 +39,17 @@ pkgver() {
 build() {
   cd "${srcdir}/${_pkgname}"
 
-  # Đảm bảo cache npm nằm trong thư mục build để tránh dính quyền root
+  # Tránh lỗi ghi cache khi chạy npm
   export npm_config_cache="${srcdir}/npm-cache"
 
-  # 1. Cài đặt các phụ thuộc npm
   npm ci || npm install
-
-  # 2. Tải DMG, giải nén, patch và build native modules
   npm run setup
-
-  # 3. Tạo file gói .deb vào thư mục dist/
   npm run build
 }
 
 package() {
   cd "${srcdir}/${_pkgname}"
 
-  # Giải nén file .deb đã build từ npm run build vào thẳng pkgdir của Arch
   local deb_file=$(ls dist/Zalo-*.deb | head -n 1)
   
   if [ ! -f "$deb_file" ]; then
@@ -64,6 +57,8 @@ package() {
     exit 1
   fi
 
-  # Giải nén data.tar.xz (hoặc data.tar.zst) từ deb vào $pkgdir
-  bsdtar -xf "$deb_file" -C "${pkgdir}" data.tar.*
+  # Dùng bsdtar giải nén trực tiếp data.tar.* từ deb vào pkgdir mà không cần dpkg
+  bsdtar -xf "$deb_file" -C "${pkgdir}" "data.tar.*"
+  bsdtar -xf "${pkgdir}/data.tar."* -C "${pkgdir}"
+  rm -f "${pkgdir}/data.tar."*
 }
