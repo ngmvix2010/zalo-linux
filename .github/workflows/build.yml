@@ -40,10 +40,10 @@ jobs:
           path: 'zalo-linux'
 
       - name: Fix permissions for builder user
-        # Cấp quyền cho user builder đối với cả thư mục làm việc VÀ thư mục temp của GitHub Actions
+        # Cấp quyền cho builder mà không đổi owner thư mục hệ thống của runner
         run: |
           chown -R builder:builder zalo-linux
-          chown -R builder:builder /__w/_temp/
+          chmod -R 777 /__w/_temp/
 
       - name: Run makepkg
         id: build
